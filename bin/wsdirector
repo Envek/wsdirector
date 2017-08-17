@@ -19,7 +19,4 @@ begin
   end
 
   WsDirector.perform(scenario_path, ws_path, options[:scale].to_i || 1)
-rescue Exception => e
-  STDERR.puts(e)
-  exit(1)
 end

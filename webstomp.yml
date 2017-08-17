@@ -1,0 +1,40 @@
+- client:
+    multiplier: ":scale"
+    actions:
+      - send:
+          data: "CONNECT\nlogin:guest\npasscode:guest\nhost:/\naccept-version:1.2,1.1,1.0\nheart-beat:0,0\n\n\0"
+      - receive:
+          data: !ruby/regexp /CONNECTED/
+      - send:
+          data: "SUBSCRIBE\nack:client-individual\ndurable:true\nauto-delete:false\nid::rand\ndestination:/exchange/amq.topic/station-1.user-1.*\n\n\0"
+      - wait_all
+      - send:
+          data: "SEND\ndestination:/exchange/amq.topic/station-1.user-1.foo\ncontent-type:text/plain\n\nhello\0"
+      - receive:
+          data: !ruby/regexp /MESSAGE/
+      - send:
+          data: "ACK\nid::ack\n\n\0"
+      - wait_all
+      # - send:
+      #     data: "DISCONNECT\nreceipt:42\n\n\0"
+      # - receive:
+      #     data: !ruby/regexp /RECEIPT/
+- client:
+    multiplier: ":scale * 10"
+    actions:
+      - send:
+          data: "CONNECT\nlogin:guest\npasscode:guest\nhost:/\naccept-version:1.2,1.1,1.0\nheart-beat:0,0\n\n\0"
+      - receive:
+          data: !ruby/regexp /CONNECTED/
+      - send:
+          data: "SUBSCRIBE\nack:client-individual\ndurable:true\nauto-delete:false\nid::rand\ndestination:/exchange/amq.topic/station-1.user-1.*\n\n\0"
+      - wait_all
+      - receive:
+          data: !ruby/regexp /MESSAGE/
+      - send:
+          data: "ACK\nid::ack\n\n\0"
+      - wait_all
+      # - send:
+      #     data: "DISCONNECT\nreceipt:42\n\n\0"
+      # - receive:
+      #     data: !ruby/regexp /RECEIPT/

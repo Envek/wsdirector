@@ -7,8 +7,8 @@ module WsDirector
 
     attr_reader :wait_proc, :ws
 
-    WAIT_WHEN_EXPECTING_RECEIVE = 5
-    WAIT_ALL_TIMEOUT = 10
+    WAIT_WHEN_EXPECTING_RECEIVE = 50
+    WAIT_ALL_TIMEOUT = 150
 
     def initialize(path, scenario, wait_proc, thread_num)
       @wait_proc = wait_proc
@@ -43,20 +43,26 @@ module WsDirector
       return if scenario.empty?
       task = scenario.shift
       if task['type'] == 'send'
-        ws.send(task['data'].to_json)
+        d = task['data'].is_a?(Hash) ? task['data'].to_json : task['data']
+        d&.sub!(':ack', @message_ack) if @message_ack
+        d&.sub!(':rand', SecureRandom.uuid)
+        ws.send(d)
+        puts "#{thread_num} SENT:\n#{d}"
       elsif task['type'] == 'wait_all'
         Timeout.timeout(WAIT_ALL_TIMEOUT) do
           wait_proc.call
         end
       elsif task['type'] == 'receive'
         message = receive_message
-        if task['data'] == message
+        puts "#{thread_num} GOT:\n#{message}"
+        if task['data'] === message
           task_multiplier = task['multiplier']
           if !task_multiplier.nil? && task_multiplier.to_i != 1
             task['multiplier'] = task_multiplier - 1
             scenario.unshift(task)
           end
           @retried = false
+          @message_ack = message.match(/ack:(.+?)\n/)&.send(:[], 1)
         else
           return raise_exception("#{thread_num} RECEIVED: #{message}  EXPECTED: #{task['data']}") if @retried
           scenario.unshift(task)
